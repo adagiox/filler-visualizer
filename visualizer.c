@@ -1,11 +1,17 @@
 #include "visualizer.h"
 
+int setup_colors();
+
 int setup_screen()
 {
 	initscr();
  	noecho();
  	curs_set(FALSE);
 	keypad(stdscr, TRUE);
+	clear();
+	setup_colors();
+	refresh();
+	usleep(SECOND);
 	return (1);
 }
 
@@ -13,8 +19,31 @@ int cleanup_screen()
 {
 	clear();
 	refresh();
+	attroff(COLOR_PAIR(3));
 	endwin();
 	return (1);
+}
+
+int setup_colors()
+{
+	start_color();
+	init_color(COLOR_RED, 500, 0, 0);
+	init_color(COLOR_GREEN, 0, 500, 0);
+	init_pair(1, COLOR_WHITE, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	init_pair(3, COLOR_GREEN, COLOR_BLACK);
+	init_pair(4, COLOR_YELLOW, COLOR_BLACK);
+	return (1);
+}
+
+void sigint_handler(int sig)
+{
+	if (sig == SIGINT)
+	{
+		cleanup_screen();
+		printf("ABORTING...\n");
+		exit(1);
+	}
 }
 
 int open_file(char *file)
@@ -148,6 +177,10 @@ int print_frame_scr(t_frame_list *node)
 		getyx(stdscr, row, col);
 		move(row + 1, 0);
 		printw("Final Score\n== O fin: %i\n== X fin: %i\n", node->frame->row, node->frame->col);
+		printw("\nControl-C to exit.");
+		refresh();
+		while (1)
+			sleep(SECOND);
 		return 1;
 	}
 	move(0, 0);
@@ -157,7 +190,27 @@ int print_frame_scr(t_frame_list *node)
 	for (int i = 2; i < node->frame->row + 2; i++)
 	{
 		move(i, 0);
-		printw("%s\n", node->frame->grid[i - 2]);
+		char *str = node->frame->grid[i - 2];
+		for (int j = 0; j < ft_strlen(str); j++)
+		{
+			if (str[j] == 'O' || str[j] == 'o')
+			{
+				attron(COLOR_PAIR(4));
+				printw("%c", str[j]);
+				attroff(COLOR_PAIR(4));
+			}
+			else if (str[j] == 'X' || str[j] == 'x')
+			{
+				attron(COLOR_PAIR(3));
+				printw("%c", str[j]);
+				attroff(COLOR_PAIR(3));
+			}
+			else if (str[j] == '.')
+				printw(" ");
+			else
+				printw("%c", str[j]);
+		}
+		printw("\n");
 	}
 	return (1);
 }
@@ -165,6 +218,7 @@ int print_frame_scr(t_frame_list *node)
 int play_frames(t_frame_list *head)
 {
 	t_frame_list *p;
+	int sleepdiv = 10;
 
 	p = head;
 	while (p != NULL)
@@ -176,11 +230,21 @@ int play_frames(t_frame_list *head)
 			print_frame_scr(p);
 			refresh();
 			p = p->next;
-			usleep(SECOND / 10);
+			usleep(SECOND / sleepdiv);
 		}	
+		else if (ch == KEY_DOWN)
+		{
+			if (sleepdiv > 1)
+				sleepdiv--;
+		}
+		else if (ch == KEY_UP)
+		{
+			if (sleepdiv < 100)
+				sleepdiv++;
+		}
 		else if (ch == ' ')
 		{
-			usleep(SECOND / 5);
+			usleep(SECOND / 50);
 			while (1)
 			{
 				if ((ch = getch()) == ERR)
@@ -193,7 +257,7 @@ int play_frames(t_frame_list *head)
 						p = p->prev;
 					print_frame_scr(p);
 					refresh();
-					usleep(SECOND / 5);
+					usleep(SECOND / 50);
 					continue;
 				}
 				else if (ch == KEY_RIGHT)
@@ -202,7 +266,7 @@ int play_frames(t_frame_list *head)
 						p = p->next;
 					print_frame_scr(p);
 					refresh();
-					usleep(SECOND / 5);
+					usleep(SECOND / 50);
 					continue;
 				}
 			}
@@ -216,6 +280,8 @@ int main(int argc, char **argv)
 {
 	char *file;
 	int fd;
+
+	signal(SIGINT, sigint_handler);
 
 	if (argc != 2)
 	{
@@ -236,9 +302,8 @@ int main(int argc, char **argv)
 
 	// Start the visualizer
 	setup_screen();
-	clear();
-	usleep(SECOND);
-	play_frames(frame_list);
+	if (frame_list != NULL)
+		play_frames(frame_list);
 	cleanup_screen();
 	return (1);
 }

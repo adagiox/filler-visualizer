@@ -3,6 +3,7 @@
 # include <curses.h>
 # include <stdio.h>
 # include <unistd.h>
+# include <wchar.h>
 # include "../libft/includes/libft.h"
 # include "../libft/includes/ft_printf.h"
 
