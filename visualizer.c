@@ -33,6 +33,9 @@ int setup_colors()
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	init_pair(3, COLOR_GREEN, COLOR_BLACK);
 	init_pair(4, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(5, COLOR_BLUE, COLOR_BLACK);
+	init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(7, COLOR_CYAN, COLOR_BLACK);
 	return (1);
 }
 
@@ -177,16 +180,27 @@ int print_frame_scr(t_frame_list *node)
 		getyx(stdscr, row, col);
 		move(row + 1, 0);
 		printw("Final Score\n== O fin: %i\n== X fin: %i\n", node->frame->row, node->frame->col);
-		printw("\nControl-C to exit.");
+		printw("\nSpacebar to continue...");
 		refresh();
 		while (1)
-			sleep(SECOND);
+		{
+			int ch;
+			nodelay(stdscr, TRUE);
+			if ((ch = getch()) == ERR)
+				continue;
+			else if (ch == ' ')
+				break;
+			sleep(SECOND / 50);
+		}
 		return 1;
 	}
 	move(0, 0);
 	printw("Frame number: %i", node->frame->frame_number);
 	move(1, 0);
 	printw("Plateau %i %i:", node->frame->row, node->frame->col);
+	int r = 1;
+	time_t t;
+	srand((unsigned) time(&t));
 	for (int i = 2; i < node->frame->row + 2; i++)
 	{
 		move(i, 0);
@@ -195,15 +209,17 @@ int print_frame_scr(t_frame_list *node)
 		{
 			if (str[j] == 'O' || str[j] == 'o')
 			{
-				attron(COLOR_PAIR(4));
-				printw("%c", str[j]);
-				attroff(COLOR_PAIR(4));
-			}
-			else if (str[j] == 'X' || str[j] == 'x')
-			{
+				//r = rand() % 7;
 				attron(COLOR_PAIR(3));
 				printw("%c", str[j]);
 				attroff(COLOR_PAIR(3));
+			}
+			else if (str[j] == 'X' || str[j] == 'x')
+			{
+				//r = rand() % 7;
+				attron(COLOR_PAIR(4));
+				printw("%c", str[j]);
+				attroff(COLOR_PAIR(4));
 			}
 			else if (str[j] == '.')
 				printw(" ");
@@ -231,7 +247,7 @@ int play_frames(t_frame_list *head)
 			refresh();
 			p = p->next;
 			usleep(SECOND / sleepdiv);
-		}	
+		}
 		else if (ch == KEY_DOWN)
 		{
 			if (sleepdiv > 1)
@@ -272,7 +288,7 @@ int play_frames(t_frame_list *head)
 			}
 		}
 	}
-	usleep(SECOND * 5);
+	usleep(SECOND / 50);
 	return (1);
 }
 
@@ -280,30 +296,35 @@ int main(int argc, char **argv)
 {
 	char *file;
 	int fd;
-
+	int num;
 	signal(SIGINT, sigint_handler);
 
-	if (argc != 2)
+	if (argc < 2)
 	{
 		printf("Usage:\nPlease specify a valid filename as the second argument.\n");
 		return (-1);
 	}
-	file = argv[1];
-	if ((fd = open_file(file)) < 0)
+	num = 1;
+	while (num < argc)
 	{
-		printf("Open failed!\n");
-		return (-1);
-	}
+		setup_screen();
+		file = argv[num];
+		if ((fd = open_file(file)) < 0)
+		{
+			printf("Open failed!\n");
+			return (-1);
+		}
 	
-	// Read the file and parse into frames
-	t_frame_list *frame_list;
-	frame_list = parse_frames(fd);
-	//print_all_frames(frame_list);
+		// Read the file and parse into frames
+		t_frame_list *frame_list;
+		frame_list = parse_frames(fd);
+		//print_all_frames(frame_list);
 
-	// Start the visualizer
-	setup_screen();
-	if (frame_list != NULL)
-		play_frames(frame_list);
-	cleanup_screen();
+		// Start the visualizer
+		if (frame_list != NULL)
+			play_frames(frame_list);
+		num++;
+		cleanup_screen();
+	}
 	return (1);
 }

@@ -2,10 +2,11 @@
 # define VISUALIZER_H
 # include <curses.h>
 # include <stdio.h>
+# include <stdlib.h>
 # include <unistd.h>
 # include <wchar.h>
-# include "../libft/includes/libft.h"
-# include "../libft/includes/ft_printf.h"
+# include "libft/includes/libft.h"
+# include "libft/includes/ft_printf.h"
 
 # define SECOND 1000000
 
